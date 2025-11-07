@@ -21,6 +21,9 @@ return Application::configure(basePath: dirname(__DIR__))
             'subscription.active' => \App\Http\Middleware\CheckActiveSubscription::class,
         ]);
 
+        // Inject XSRF header from cookie if missing (for cross-site requests)
+        $middleware->prepend(\App\Http\Middleware\InjectXsrfHeader::class);
+        
         // Force all cookies to use SameSite=None for cross-site support
         $middleware->append(\App\Http\Middleware\ForceSecureCookies::class);
     })
