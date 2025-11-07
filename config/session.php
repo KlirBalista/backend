@@ -199,7 +199,8 @@ return [
     |
     */
 
-    'same_site' => env('SESSION_SAME_SITE', 'lax'),
+    // Force cross-site support by default; can still be overridden via env
+    'same_site' => env('SESSION_SAME_SITE', 'none'),
 
     /*
     |--------------------------------------------------------------------------
@@ -212,6 +213,7 @@ return [
     |
     */
 
-    'partitioned' => env('SESSION_PARTITIONED_COOKIE', false),
+    // Enable CHIPS partitioned cookies by default for third-party cookie phaseout
+    'partitioned' => env('SESSION_PARTITIONED_COOKIE', true),
 
 ];

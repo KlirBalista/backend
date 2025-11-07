@@ -15,15 +15,15 @@ return [
     |
     */
 
-    'paths' => ['*'],
+    'paths' => ['api/*', 'sanctum/csrf-cookie', 'login', 'logout'],
 
     'allowed_methods' => ['*'],
 
     'allowed_origins' => [env('FRONTEND_URL', 'http://localhost:3000')],
 
-    'allowed_origins_patterns' => [],
+'allowed_origins_patterns' => ['#^https://.*\\.vercel\\.app$#'],
 
-    'allowed_headers' => ['*'],
+    'allowed_headers' => ['Content-Type', 'X-Requested-With', 'X-XSRF-TOKEN', 'Authorization'],
 
     'exposed_headers' => [],
 

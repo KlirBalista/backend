@@ -21,7 +21,8 @@ return Application::configure(basePath: dirname(__DIR__))
             'subscription.active' => \App\Http\Middleware\CheckActiveSubscription::class,
         ]);
 
-        //
+        // Force all cookies to use SameSite=None for cross-site support
+        $middleware->append(\App\Http\Middleware\ForceSecureCookies::class);
     })
     ->withExceptions(function (Exceptions $exceptions) {
         //
