@@ -573,9 +573,10 @@ class PDFService
         $pdf->SetFont('helvetica', '', 10);
         
         $pdf->Cell(50, $lineHeight, 'Patient Condition:', 0, 0, 'L');
-        $pdf->Cell(60, $lineHeight, $referral->patient_condition ?? 'stable', 'B', 0, 'L');
-        $pdf->Cell(20, $lineHeight, 'Transportation:', 0, 0, 'L');
-        $pdf->Cell(50, $lineHeight, ucfirst(str_replace('_', ' ', $referral->transportation_mode ?? 'ambulance')), 'B', 1, 'L');
+        $pdf->Cell(60, $lineHeight, $referral->patient_condition ?? 'stable', 'B', 1, 'L');
+        
+        $pdf->Cell(50, $lineHeight, 'Transportation:', 0, 0, 'L');
+        $pdf->Cell(60, $lineHeight, ucfirst(str_replace('_', ' ', $referral->transportation_mode ?? 'ambulance')), 'B', 1, 'L');
         
         if (!empty($referral->accompanies_patient)) {
             $pdf->Cell(50, $lineHeight, 'Accompanies Patient:', 0, 0, 'L');
