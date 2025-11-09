@@ -431,9 +431,6 @@ class PDFService
         
         $pdf->SetFont('helvetica', 'B', 14);
         $pdf->Cell(0, 6, 'PATIENT REFERRAL FORM', 0, 1, 'C');
-        
-        $pdf->SetLineWidth(0.3);
-        $pdf->Line(15, $pdf->GetY(), 195, $pdf->GetY());
         $pdf->Ln(6);
     }
     
@@ -442,9 +439,9 @@ class PDFService
         $pdf->SetFont('helvetica', '', 10);
         $lineHeight = 6;
         
-        // Patient Information
+        // PATIENT INFORMATION
         $pdf->SetFont('helvetica', 'B', 11);
-        $pdf->Cell(0, $lineHeight, 'Patient Information', 1, 1, 'L');
+        $pdf->Cell(0, $lineHeight, 'PATIENT INFORMATION', 0, 1, 'L');
         $pdf->SetFont('helvetica', '', 10);
         
         if ($referral->patient) {
@@ -466,10 +463,6 @@ class PDFService
             $pdf->Cell(20, $lineHeight, 'Age:', 0, 0, 'L');
             $pdf->Cell(50, $lineHeight, $age . ' years', 'B', 1, 'L');
             
-            // Gender
-            $pdf->Cell(50, $lineHeight, 'Gender:', 0, 0, 'L');
-            $pdf->Cell(130, $lineHeight, $referral->patient->gender ?? '', 'B', 1, 'L');
-            
             // Address
             $pdf->Cell(50, $lineHeight, 'Address:', 0, 0, 'L');
             $pdf->MultiCell(130, $lineHeight, $referral->patient->address ?? '', 'B', 'L');
@@ -477,9 +470,9 @@ class PDFService
         
         $pdf->Ln(3);
         
-        // Referral Information
+        // REFERRAL INFORMATION
         $pdf->SetFont('helvetica', 'B', 11);
-        $pdf->Cell(0, $lineHeight, 'Referral Information', 1, 1, 'L');
+        $pdf->Cell(0, $lineHeight, 'REFERRAL INFORMATION', 0, 1, 'L');
         $pdf->SetFont('helvetica', '', 10);
         
         $pdf->Cell(50, $lineHeight, 'Referral Date:', 0, 0, 'L');
@@ -494,9 +487,9 @@ class PDFService
         
         $pdf->Ln(3);
         
-        // Facility Information
+        // FACILITY INFORMATION
         $pdf->SetFont('helvetica', 'B', 11);
-        $pdf->Cell(0, $lineHeight, 'Facility Information', 1, 1, 'L');
+        $pdf->Cell(0, $lineHeight, 'FACILITY INFORMATION', 0, 1, 'L');
         $pdf->SetFont('helvetica', 'B', 10);
         $pdf->Cell(0, $lineHeight, 'From - Facility:', 0, 1, 'L');
         $pdf->SetFont('helvetica', '', 10);
@@ -519,9 +512,9 @@ class PDFService
         
         $pdf->Ln(3);
         
-        // Clinical Information
+        // CLINICAL INFORMATION
         $pdf->SetFont('helvetica', 'B', 11);
-        $pdf->Cell(0, $lineHeight, 'Clinical Information', 1, 1, 'L');
+        $pdf->Cell(0, $lineHeight, 'CLINICAL INFORMATION', 0, 1, 'L');
         $pdf->SetFont('helvetica', '', 10);
         
         $pdf->Cell(50, $lineHeight, 'Reason for Referral:', 0, 0, 'L');
@@ -574,9 +567,9 @@ class PDFService
         
         $pdf->Ln(3);
         
-        // Transfer Details
+        // TRANSFER DETAILS
         $pdf->SetFont('helvetica', 'B', 11);
-        $pdf->Cell(0, $lineHeight, 'Transfer Details', 1, 1, 'L');
+        $pdf->Cell(0, $lineHeight, 'TRANSFER DETAILS', 0, 1, 'L');
         $pdf->SetFont('helvetica', '', 10);
         
         $pdf->Cell(50, $lineHeight, 'Patient Condition:', 0, 0, 'L');
@@ -614,18 +607,13 @@ class PDFService
             $pdf->MultiCell(130, $lineHeight, $referral->special_instructions, 'B', 'L');
         }
         
-        // Insurance Information
-        $pdf->Ln(3);
-        $pdf->SetFont('helvetica', 'B', 11);
-        $pdf->Cell(0, $lineHeight, 'Insurance Information', 1, 1, 'L');
-        $pdf->SetFont('helvetica', '', 10);
-        $pdf->MultiCell(180, $lineHeight, $referral->insurance_information ?? 'N/A', 'B', 'L');
+        // (Removed Insurance Information section)
         
         // Emergency Contact
         if ($referral->family_contact_name || $referral->family_contact_phone || $referral->family_contact_relationship) {
             $pdf->Ln(3);
             $pdf->SetFont('helvetica', 'B', 11);
-            $pdf->Cell(0, $lineHeight, 'Emergency Contact', 1, 1, 'L');
+            $pdf->Cell(0, $lineHeight, 'EMERGENCY CONTACT', 0, 1, 'L');
             $pdf->SetFont('helvetica', '', 10);
             
             $pdf->Cell(50, $lineHeight, 'Contact Name:', 0, 0, 'L');
@@ -641,7 +629,7 @@ class PDFService
         if (!empty($referral->notes)) {
             $pdf->Ln(3);
             $pdf->SetFont('helvetica', 'B', 11);
-            $pdf->Cell(0, $lineHeight, 'Additional Notes', 1, 1, 'L');
+            $pdf->Cell(0, $lineHeight, 'ADDITIONAL NOTES', 0, 1, 'L');
             $pdf->SetFont('helvetica', '', 10);
             $pdf->MultiCell(180, $lineHeight, $referral->notes, 'B', 'L');
         }
