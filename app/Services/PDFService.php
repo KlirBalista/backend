@@ -397,389 +397,179 @@ class PDFService
     
     private static function addReferralHeader($pdf, $facility = null)
     {
-        // Top banner with government header
-        $pdf->SetFillColor(240, 248, 255); // Light blue background
-        $pdf->Rect(10, 10, 190, 35, 'F');
+        $pdf->SetFont('helvetica', '', 9);
+        $pdf->Cell(0, 4, 'REPUBLIC OF THE PHILIPPINES', 0, 1, 'C');
         
-        $pdf->SetY(15);
-        $pdf->SetFont('helvetica', '', 10);
-        $pdf->Cell(0, 5, 'REPUBLIC OF THE PHILIPPINES', 0, 1, 'C');
-        
-        // Facility name - larger and bold
-        $facilityName = 'birthCareInfo.name';
+        // Facility name
+        $facilityName = 'BIRTHING HOME';
         if ($facility && isset($facility->name) && !empty(trim($facility->name))) {
             $facilityName = strtoupper(trim($facility->name));
         }
         
-        $pdf->SetFont('helvetica', 'B', 14);
-        $pdf->Cell(0, 6, $facilityName, 0, 1, 'C');
+        $pdf->SetFont('helvetica', 'B', 12);
+        $pdf->Cell(0, 5, $facilityName, 0, 1, 'C');
         
-        // Subtitle with description or "Health Care Services"
-        $subtitle = 'Health Care Services';
-        if ($facility && isset($facility->description) && !empty(trim($facility->description))) {
+        // Subtitle
+        $subtitle = '';
+        if ($facility && isset($facility->address) && !empty(trim($facility->address))) {
+            $subtitle = trim($facility->address);
+        } elseif ($facility && isset($facility->description) && !empty(trim($facility->description))) {
             $subtitle = trim($facility->description);
         }
         
-        $pdf->SetFont('helvetica', '', 10);
-        $pdf->SetTextColor(0, 100, 0); // Dark green
-        $pdf->Cell(0, 5, $subtitle, 0, 1, 'C');
-        $pdf->SetTextColor(0, 0, 0); // Reset to black
+        if ($subtitle) {
+            $pdf->SetFont('helvetica', '', 9);
+            $pdf->Cell(0, 4, $subtitle, 0, 1, 'C');
+        }
         
-        $pdf->Ln(8);
+        $pdf->Ln(4);
         
-        // Document title with decorative lines
-        $pdf->SetLineWidth(0.5);
-        $pdf->Line(20, $pdf->GetY(), 190, $pdf->GetY());
-        $pdf->Ln(3);
+        // Document title
+        $pdf->SetLineWidth(0.3);
+        $pdf->Line(15, $pdf->GetY(), 195, $pdf->GetY());
+        $pdf->Ln(2);
         
-        $pdf->SetFont('helvetica', 'B', 16);
-        $pdf->Cell(0, 8, 'PATIENT REFERRAL FORM', 0, 1, 'C');
+        $pdf->SetFont('helvetica', 'B', 14);
+        $pdf->Cell(0, 6, 'PATIENT REFERRAL FORM', 0, 1, 'C');
         
-        $pdf->Line(20, $pdf->GetY() + 2, 190, $pdf->GetY() + 2);
-        $pdf->Ln(8);
+        $pdf->SetLineWidth(0.3);
+        $pdf->Line(15, $pdf->GetY(), 195, $pdf->GetY());
+        $pdf->Ln(6);
     }
     
     private static function addReferralContent($pdf, $referral)
     {
-        // URGENT/EMERGENCY indicator if applicable
-        if (in_array($referral->urgency_level, ['urgent', 'emergency', 'critical'])) {
-            $pdf->SetFillColor(255, 240, 240); // Light red background
-            $pdf->SetTextColor(200, 0, 0); // Dark red text
-            $pdf->SetFont('helvetica', 'B', 12);
-            $urgencyText = '⚠ ' . strtoupper($referral->urgency_level) . ' REFERRAL ⚠';
-            if ($referral->urgency_level === 'critical') {
-                $urgencyText = '🔴 CRITICAL REFERRAL - IMMEDIATE ATTENTION REQUIRED 🔴';
-            }
-            $pdf->Rect(15, $pdf->GetY(), 180, 10, 'F');
-            $pdf->Cell(0, 10, $urgencyText, 0, 1, 'C');
-            $pdf->SetTextColor(0, 0, 0); // Reset to black
-            $pdf->Ln(5);
+        $pdf->SetFont('helvetica', '', 10);
+        $lineHeight = 6;
+        
+        // Patient Information
+        $pdf->SetFont('helvetica', 'B', 11);
+        $pdf->Cell(0, $lineHeight, 'Patient Information', 1, 1, 'L');
+        $pdf->SetFont('helvetica', '', 10);
+        
+        if ($referral->patient) {
+            $patientName = trim($referral->patient->first_name . ' ' . 
+                          ($referral->patient->middle_name ? $referral->patient->middle_name . ' ' : '') . 
+                          $referral->patient->last_name);
+            $age = $referral->patient->date_of_birth ? self::calculateAge($referral->patient->date_of_birth) : 'N/A';
+            $dob = $referral->patient->date_of_birth ? date('F j, Y', strtotime($referral->patient->date_of_birth)) : 'N/A';
+            
+            // Name and Phone
+            $pdf->Cell(50, $lineHeight, 'Patient Name:', 0, 0, 'L');
+            $pdf->Cell(60, $lineHeight, $patientName, 'B', 0, 'L');
+            $pdf->Cell(20, $lineHeight, 'Phone:', 0, 0, 'L');
+            $pdf->Cell(50, $lineHeight, $referral->patient->contact_number ?? '', 'B', 1, 'L');
+            
+            // DOB and Age  
+            $pdf->Cell(50, $lineHeight, 'Date of Birth:', 0, 0, 'L');
+            $pdf->Cell(60, $lineHeight, $dob, 'B', 0, 'L');
+            $pdf->Cell(20, $lineHeight, 'Age:', 0, 0, 'L');
+            $pdf->Cell(50, $lineHeight, $age . ' years', 'B', 1, 'L');
+            
+            // Gender
+            $pdf->Cell(50, $lineHeight, 'Gender:', 0, 0, 'L');
+            $pdf->Cell(130, $lineHeight, $referral->patient->gender ?? '', 'B', 1, 'L');
+            
+            // Address
+            $pdf->Cell(50, $lineHeight, 'Address:', 0, 0, 'L');
+            $pdf->MultiCell(130, $lineHeight, $referral->patient->address ?? '', 'B', 'L');
         }
         
-        // Patient Information Section
-        self::addTableSection($pdf, 'Patient Information', function($pdf) use ($referral) {
-            if ($referral->patient) {
-                $patientName = trim($referral->patient->first_name . ' ' . 
-                              ($referral->patient->middle_name ? $referral->patient->middle_name . ' ' : '') . 
-                              $referral->patient->last_name);
-                
-                $age = $referral->patient->date_of_birth ? self::calculateAge($referral->patient->date_of_birth) : 'N/A';
-                $dob = $referral->patient->date_of_birth ? date('F j, Y', strtotime($referral->patient->date_of_birth)) : 'N/A';
-                $phone = $referral->patient->phone_number ?? 'N/A';
-                $gender = $referral->patient->gender ?? 'N/A';
-                $address = $referral->patient->address ?? 'N/A';
-                
-                // Row 1: Name and Phone
-                self::drawTableRow($pdf, [
-                    ['label' => 'Patient Name:', 'value' => $patientName, 'width' => 95],
-                    ['label' => 'Phone:', 'value' => $phone, 'width' => 85]
-                ]);
-                
-                // Row 2: DOB and Age
-                self::drawTableRow($pdf, [
-                    ['label' => 'Date of Birth:', 'value' => $dob, 'width' => 95],
-                    ['label' => 'Age:', 'value' => $age . ' years', 'width' => 85]
-                ]);
-                
-                // Row 3: Gender
-                self::drawTableRow($pdf, [
-                    ['label' => 'Gender:', 'value' => $gender, 'width' => 95],
-                    ['label' => '', 'value' => '', 'width' => 85]
-                ]);
-                
-                // Row 4: Address (full width)
-                self::drawTableRow($pdf, [
-                    ['label' => 'Address:', 'value' => $address, 'width' => 180]
-                ]);
-            }
-        });
+        $pdf->Ln(3);
         
-        // Referral Information Section
-        self::addTableSection($pdf, 'Referral Information', function($pdf) use ($referral) {
-            $referralDate = date('F j, Y', strtotime($referral->referral_date));
-            $referralTime = date('g:i A', strtotime($referral->referral_time));
-            $urgencyLevel = strtoupper($referral->urgency_level);
-            $status = strtoupper($referral->status ?? 'PENDING');
-            
-            // Row 1: Date and Time
-            self::drawTableRow($pdf, [
-                ['label' => 'Referral Date:', 'value' => $referralDate, 'width' => 95],
-                ['label' => 'Time:', 'value' => $referralTime, 'width' => 85]
-            ]);
-            
-            // Row 2: Urgency and Status
-            self::drawTableRow($pdf, [
-                ['label' => 'Urgency Level:', 'value' => $urgencyLevel, 'width' => 95],
-                ['label' => 'Status:', 'value' => $status, 'width' => 85]
-            ]);
-        });
+        // Referral Information
+        $pdf->SetFont('helvetica', 'B', 11);
+        $pdf->Cell(0, $lineHeight, 'Referral Information', 1, 1, 'L');
+        $pdf->SetFont('helvetica', '', 10);
         
-        // Facility Information Section
-        self::addTableSection($pdf, 'Facility Information', function($pdf) use ($referral) {
-            // From - Facility row
-            self::drawSectionHeader($pdf, 'From - Facility:', 180);
-            self::drawTableRow($pdf, [
-                ['label' => 'Facility:', 'value' => $referral->referring_facility, 'width' => 180]
-            ]);
-            
-            // From - Physician and Contact
-            self::drawTableRow($pdf, [
-                ['label' => 'Physician:', 'value' => $referral->referring_physician, 'width' => 95],
-                ['label' => 'Contact:', 'value' => $referral->referring_physician_contact ?? '', 'width' => 85]
-            ]);
-            
-            // To - Facility row
-            self::drawSectionHeader($pdf, 'To - Facility:', 180);
-            self::drawTableRow($pdf, [
-                ['label' => 'Facility:', 'value' => $referral->receiving_facility, 'width' => 180]
-            ]);
-            
-            // To - Physician and Contact
-            self::drawTableRow($pdf, [
-                ['label' => 'Physician:', 'value' => $referral->receiving_physician ?? '', 'width' => 95],
-                ['label' => 'Contact:', 'value' => $referral->receiving_physician_contact ?? '', 'width' => 85]
-            ]);
-        });
+        $pdf->Cell(50, $lineHeight, 'Referral Date:', 0, 0, 'L');
+        $pdf->Cell(60, $lineHeight, date('F j, Y', strtotime($referral->referral_date)), 'B', 0, 'L');
+        $pdf->Cell(20, $lineHeight, 'Time:', 0, 0, 'L');
+        $pdf->Cell(50, $lineHeight, date('g:i A', strtotime($referral->referral_time)), 'B', 1, 'L');
         
-        // Clinical Information Section
-        self::addTableSection($pdf, 'Clinical Information', function($pdf) use ($referral) {
-            // Reason for referral (full width)
-            self::drawTableRow($pdf, [
-                ['label' => 'Reason for referral:', 'value' => $referral->reason_for_referral, 'width' => 180, 'multiline' => true]
-            ]);
-            
-            // Clinical Summary (full width if exists)
-            if (!empty($referral->current_diagnosis)) {
-                self::drawTableRow($pdf, [
-                    ['label' => 'Clinical Summary:', 'value' => $referral->current_diagnosis, 'width' => 180, 'multiline' => true]
-                ]);
-            }
-            
-            // Current Diagnosis and Vital Signs
-            if (!empty($referral->current_diagnosis) && !empty($referral->vital_signs)) {
-                self::drawTableRow($pdf, [
-                    ['label' => 'Current Diagnosis:', 'value' => $referral->current_diagnosis, 'width' => 95],
-                    ['label' => 'Vital Signs:', 'value' => $referral->vital_signs, 'width' => 85]
-                ]);
-            } elseif (!empty($referral->vital_signs)) {
-                self::drawTableRow($pdf, [
-                    ['label' => 'Vital Signs:', 'value' => $referral->vital_signs, 'width' => 180]
-                ]);
-            }
-        });
+        $pdf->Cell(50, $lineHeight, 'Urgency Level:', 0, 0, 'L');
+        $pdf->Cell(60, $lineHeight, strtoupper($referral->urgency_level), 'B', 0, 'L');
+        $pdf->Cell(20, $lineHeight, 'Status:', 0, 0, 'L');
+        $pdf->Cell(50, $lineHeight, strtoupper($referral->status ?? 'PENDING'), 'B', 1, 'L');
         
-        // Transfer Details Section
-        self::addTableSection($pdf, 'Transfer Details', function($pdf) use ($referral) {
-            // Patient condition and Transportation
-            $patientCondition = $referral->patient_condition ?? 'stable';
-            $transportation = ucfirst(str_replace('_', ' ', $referral->transportation_mode ?? 'ambulance'));
-            
-            self::drawTableRow($pdf, [
-                ['label' => 'Patient Condition:', 'value' => $patientCondition, 'width' => 95],
-                ['label' => 'Transportation:', 'value' => $transportation, 'width' => 85]
-            ]);
-            
-            // Special Instructions (full width if exists)
-            if (!empty($referral->special_instructions)) {
-                self::drawTableRow($pdf, [
-                    ['label' => 'Special Instructions:', 'value' => $referral->special_instructions, 'width' => 180, 'multiline' => true]
-                ]);
-            }
-        });
+        $pdf->Ln(3);
         
-        // Emergency Contact Section (if available)
-        if ($referral->family_contact_name || $referral->family_contact_phone) {
-            self::addTableSection($pdf, 'Emergency Contact', function($pdf) use ($referral) {
-                $contactName = $referral->family_contact_name ?? 'N/A';
-                $contactPhone = $referral->family_contact_phone ?? 'N/A';
-                $relationship = $referral->family_contact_relationship ?? 'N/A';
-                
-                // Name and Phone
-                self::drawTableRow($pdf, [
-                    ['label' => 'Contact Name:', 'value' => $contactName, 'width' => 95],
-                    ['label' => 'Phone:', 'value' => $contactPhone, 'width' => 85]
-                ]);
-                
-                // Relationship
-                self::drawTableRow($pdf, [
-                    ['label' => 'Relationship:', 'value' => $relationship, 'width' => 180]
-                ]);
-            });
+        // Facility Information
+        $pdf->SetFont('helvetica', 'B', 11);
+        $pdf->Cell(0, $lineHeight, 'Facility Information', 1, 1, 'L');
+        $pdf->SetFont('helvetica', 'B', 10);
+        $pdf->Cell(0, $lineHeight, 'From - Facility:', 0, 1, 'L');
+        $pdf->SetFont('helvetica', '', 10);
+        
+        $pdf->Cell(50, $lineHeight, 'Facility:', 0, 0, 'L');
+        $pdf->Cell(130, $lineHeight, $referral->referring_facility, 'B', 1, 'L');
+        
+        $pdf->Cell(50, $lineHeight, 'Physician:', 0, 0, 'L');
+        $pdf->Cell(60, $lineHeight, $referral->referring_physician, 'B', 0, 'L');
+        $pdf->Cell(20, $lineHeight, 'Contact:', 0, 0, 'L');
+        $pdf->Cell(50, $lineHeight, $referral->referring_physician_contact ?? '', 'B', 1, 'L');
+        
+        $pdf->SetFont('helvetica', 'B', 10);
+        $pdf->Cell(0, $lineHeight, 'To - Facility:', 0, 1, 'L');
+        $pdf->SetFont('helvetica', '', 10);
+        
+        $pdf->Cell(50, $lineHeight, 'Facility:', 0, 0, 'L');
+        $pdf->Cell(130, $lineHeight, $referral->receiving_facility, 'B', 1, 'L');
+        
+        $pdf->Cell(50, $lineHeight, 'Physician:', 0, 0, 'L');
+        $pdf->Cell(60, $lineHeight, $referral->receiving_physician ?? '', 'B', 0, 'L');
+        $pdf->Cell(20, $lineHeight, 'Contact:', 0, 0, 'L');
+        $pdf->Cell(50, $lineHeight, $referral->receiving_physician_contact ?? '', 'B', 1, 'L');
+        
+        $pdf->Ln(3);
+        
+        // Clinical Information
+        $pdf->SetFont('helvetica', 'B', 11);
+        $pdf->Cell(0, $lineHeight, 'Clinical Information', 1, 1, 'L');
+        $pdf->SetFont('helvetica', '', 10);
+        
+        $pdf->Cell(50, $lineHeight, 'Reason for Referral:', 0, 0, 'L');
+        $pdf->MultiCell(130, $lineHeight, $referral->reason_for_referral, 'B', 'L');
+        
+        if (!empty($referral->current_diagnosis)) {
+            $pdf->Cell(50, $lineHeight, 'Current Diagnosis:', 0, 0, 'L');
+            $pdf->MultiCell(130, $lineHeight, $referral->current_diagnosis, 'B', 'L');
         }
         
-        // Signatures Section
-        self::addTableSection($pdf, 'Signatures', function($pdf) use ($referral) {
-            // Referring Physician
-            self::drawTableRow($pdf, [
-                ['label' => 'Referring Physician:', 'value' => $referral->referring_physician ?? '', 'width' => 95],
-                ['label' => 'Date:', 'value' => '', 'width' => 85]
-            ]);
-            
-            // Receiving Physician
-            self::drawTableRow($pdf, [
-                ['label' => 'Receiving Physician:', 'value' => $referral->receiving_physician ?? '', 'width' => 95],
-                ['label' => 'Date:', 'value' => '', 'width' => 85]
-            ]);
-        });
+        if (!empty($referral->vital_signs)) {
+            $pdf->Cell(50, $lineHeight, 'Vital Signs:', 0, 0, 'L');
+            $pdf->MultiCell(130, $lineHeight, $referral->vital_signs, 'B', 'L');
+        }
+        
+        $pdf->Ln(3);
+        
+        // Transfer Details
+        $pdf->SetFont('helvetica', 'B', 11);
+        $pdf->Cell(0, $lineHeight, 'Transfer Details', 1, 1, 'L');
+        $pdf->SetFont('helvetica', '', 10);
+        
+        $pdf->Cell(50, $lineHeight, 'Patient Condition:', 0, 0, 'L');
+        $pdf->Cell(60, $lineHeight, $referral->patient_condition ?? 'stable', 'B', 0, 'L');
+        $pdf->Cell(20, $lineHeight, 'Transportation:', 0, 0, 'L');
+        $pdf->Cell(50, $lineHeight, ucfirst(str_replace('_', ' ', $referral->transportation_mode ?? 'ambulance')), 'B', 1, 'L');
+        
+        if (!empty($referral->special_instructions)) {
+            $pdf->Cell(50, $lineHeight, 'Special Instructions:', 0, 0, 'L');
+            $pdf->MultiCell(130, $lineHeight, $referral->special_instructions, 'B', 'L');
+        }
+        
+        // Signatures
+        $pdf->Ln(10);
+        $pdf->Cell(90, $lineHeight, 'Physician:', 0, 0, 'L');
+        $pdf->Cell(90, $lineHeight, 'Physician:', 0, 1, 'L');
+        
+        $pdf->Cell(90, 15, '', 'B', 0, 'L');
+        $pdf->Cell(90, 15, '', 'B', 1, 'L');
     }
     
     private static function addReferralFooter($pdf)
     {
-        $pdf->Ln(10);
-        $pdf->SetFont('helvetica', '', 8);
-        $pdf->Cell(0, 5, 'Generated by BCSystem on ' . date('F j, Y \a\t g:i A'), 0, 1, 'C');
-    }
-    
-    /**
-     * Helper functions for table-based layout
-     */
-    private static function addTableSection($pdf, $title, $contentCallback)
-    {
-        // Section header with gray background
-        self::drawSectionHeader($pdf, $title, 180);
-        
-        // Execute the content callback
-        $contentCallback($pdf);
-        
-        // Add some space after section
-        $pdf->Ln(3);
-    }
-    
-    private static function drawSectionHeader($pdf, $title, $width)
-    {
-        $pdf->SetFillColor(220, 220, 220); // Light gray background
-        $pdf->SetFont('helvetica', 'B', 10);
-        $pdf->SetTextColor(0, 0, 0);
-        self::drawCell($pdf, 15, $pdf->GetY(), $width, 10, $title, 1, 'L', true);
-        $pdf->Ln(10);
-    }
-    
-    private static function drawTableRow($pdf, $columns)
-    {
-        $startY = $pdf->GetY();
-        $maxHeight = 0;
-        $cellHeights = [];
-        
-        // First pass: calculate the height needed for each cell
-        foreach ($columns as $index => $column) {
-            if (empty($column['label']) && empty($column['value'])) {
-                $cellHeights[$index] = 18; // Default height for empty cells
-                continue;
-            }
-            
-            $isMultiline = isset($column['multiline']) && $column['multiline'];
-            $cellHeight = self::calculateCellHeight($pdf, $column, $isMultiline);
-            $cellHeights[$index] = $cellHeight;
-            $maxHeight = max($maxHeight, $cellHeight);
-        }
-        
-        $currentX = 15; // Start position
-        
-        // Second pass: draw all cells with the same height
-        foreach ($columns as $index => $column) {
-            if (empty($column['label']) && empty($column['value'])) {
-                $currentX += $column['width'];
-                continue;
-            }
-            
-            $isMultiline = isset($column['multiline']) && $column['multiline'];
-            self::drawTextCell($pdf, $currentX, $startY, $column['width'], $maxHeight, $column['label'], $column['value'], $isMultiline);
-            $currentX += $column['width'];
-        }
-        
-        // Move to next row
-        $pdf->SetY($startY + $maxHeight);
-    }
-    
-    private static function calculateCellHeight($pdf, $column, $isMultiline = false)
-    {
-        $minHeight = 18; // Minimum cell height
-        
-        if ($isMultiline && !empty($column['value'])) {
-            // Calculate height needed for multiline text
-            $pdf->SetFont('helvetica', '', 9);
-            $textWidth = $column['width'] - 4; // Account for padding
-            $lines = self::getTextLines($pdf, $column['value'], $textWidth);
-            $textHeight = count($lines) * 4; // 4 units per line
-            return max($minHeight, $textHeight + 8); // Add padding
-        }
-        
-        return $minHeight;
-    }
-    
-    private static function getTextLines($pdf, $text, $width)
-    {
-        $lines = [];
-        $words = explode(' ', $text);
-        $currentLine = '';
-        
-        foreach ($words as $word) {
-            $testLine = empty($currentLine) ? $word : $currentLine . ' ' . $word;
-            $testWidth = $pdf->GetStringWidth($testLine);
-            
-            if ($testWidth <= $width) {
-                $currentLine = $testLine;
-            } else {
-                if (!empty($currentLine)) {
-                    $lines[] = $currentLine;
-                }
-                $currentLine = $word;
-            }
-        }
-        
-        if (!empty($currentLine)) {
-            $lines[] = $currentLine;
-        }
-        
-        return empty($lines) ? [''] : $lines;
-    }
-    
-    private static function drawCell($pdf, $x, $y, $width, $height, $text, $border = 1, $align = 'L', $fill = false)
-    {
-        $pdf->SetXY($x, $y);
-        $pdf->Cell($width, $height, $text, $border, 0, $align, $fill);
-    }
-    
-    private static function drawTextCell($pdf, $x, $y, $width, $height, $label, $value, $isMultiline = false)
-    {
-        // Draw border
-        $pdf->SetDrawColor(0, 0, 0);
-        $pdf->Rect($x, $y, $width, $height);
-        
-        $currentY = $y + 2; // Start with padding
-        
-        // Draw label if not empty
-        if (!empty($label)) {
-            $pdf->SetFont('helvetica', '', 9);
-            $pdf->SetTextColor(100, 100, 100);
-            $pdf->SetXY($x + 2, $currentY);
-            $pdf->Cell($width - 4, 4, $label, 0, 0, 'L');
-            $currentY += 6;
-        }
-        
-        // Draw value if not empty
-        if (!empty($value)) {
-            $pdf->SetFont('helvetica', '', 9);
-            $pdf->SetTextColor(0, 0, 0);
-            
-            if ($isMultiline) {
-                // Handle multiline text
-                $lines = self::getTextLines($pdf, $value, $width - 4);
-                foreach ($lines as $line) {
-                    if ($currentY + 4 <= $y + $height - 2) { // Check if there's space
-                        $pdf->SetXY($x + 2, $currentY);
-                        $pdf->Cell($width - 4, 4, $line, 0, 0, 'L');
-                        $currentY += 4;
-                    }
-                }
-            } else {
-                // Single line text
-                $pdf->SetXY($x + 2, $currentY);
-                $displayValue = $pdf->GetStringWidth($value) > ($width - 4) ? 
-                    substr($value, 0, intval(($width - 4) * 0.35)) . '...' : $value;
-                $pdf->Cell($width - 4, 4, $displayValue, 0, 0, 'L');
-            }
-        }
+        // Empty or minimal footer
     }
 
     /**
