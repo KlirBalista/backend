@@ -367,12 +367,14 @@ class ReferralController extends Controller
             
             $documentTitle = "Referral - {$patientName} - {$referral->referral_date}";
             $fileName = time() . '_referral_' . str_replace(' ', '_', $patientName) . '_' . $referral->referral_date . '.pdf';
-            $filePath = 'patient-documents/' . $fileName;
+            $filePath = $fileName;
             
-            // Save PDF to storage
+            // Save PDF to Supabase storage
             $pdfContent = $pdf->Output('', 'S'); // Get PDF as string
-            Storage::disk('public')->put($filePath, $pdfContent);
-            $fileSize = Storage::disk('public')->size($filePath);
+            Storage::disk('supabase_patient')->put($filePath, $pdfContent, [
+                'mimetype' => 'application/pdf',
+            ]);
+            $fileSize = Storage::disk('supabase_patient')->size($filePath);
             
             // Check for duplicate titles and apply numeric suffix if needed
             $finalTitle = $this->getUniqueDocumentTitle($documentTitle, $referral->patient_id, $birthcare_id);
