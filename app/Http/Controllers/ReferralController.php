@@ -300,8 +300,9 @@ class ReferralController extends Controller
             // Generate filename
             $patientName = $referral->patient 
                 ? str_replace(' ', '_', $referral->patient->first_name . '_' . $referral->patient->last_name)
-                : 'unknown_patient';
-            $filename = "referral_{$patientName}_{$referral->referral_date}.pdf";
+                : 'Unknown_Patient';
+            $dateToday = date('Y-m-d');
+            $filename = "Referral_{$patientName}_{$dateToday}.pdf";
             
             // Return PDF as download
             return response($pdf->Output('', 'S'), 200, [
@@ -365,8 +366,9 @@ class ReferralController extends Controller
                 ? $referral->patient->first_name . ' ' . $referral->patient->last_name
                 : 'Unknown Patient';
             
-            $documentTitle = "Referral - {$patientName} - {$referral->referral_date}";
-            $fileName = time() . '_referral_' . str_replace(' ', '_', $patientName) . '_' . $referral->referral_date . '.pdf';
+            $dateToday = date('Y-m-d');
+            $documentTitle = "Referral - {$patientName} - {$dateToday}";
+            $fileName = 'Referral_' . str_replace(' ', '_', $patientName) . '_' . $dateToday . '.pdf';
             $filePath = $fileName;
             
             // Save PDF to Supabase storage
