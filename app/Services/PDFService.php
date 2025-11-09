@@ -505,9 +505,7 @@ class PDFService
         $pdf->Cell(130, $lineHeight, $referral->referring_facility, 'B', 1, 'L');
         
         $pdf->Cell(50, $lineHeight, 'Physician:', 0, 0, 'L');
-        $pdf->Cell(60, $lineHeight, $referral->referring_physician, 'B', 0, 'L');
-        $pdf->Cell(20, $lineHeight, 'Contact:', 0, 0, 'L');
-        $pdf->Cell(50, $lineHeight, $referral->referring_physician_contact ?? '', 'B', 1, 'L');
+        $pdf->Cell(130, $lineHeight, $referral->referring_physician, 'B', 1, 'L');
         
         $pdf->SetFont('helvetica', 'B', 10);
         $pdf->Cell(0, $lineHeight, 'To - Facility:', 0, 1, 'L');
@@ -517,9 +515,7 @@ class PDFService
         $pdf->Cell(130, $lineHeight, $referral->receiving_facility, 'B', 1, 'L');
         
         $pdf->Cell(50, $lineHeight, 'Physician:', 0, 0, 'L');
-        $pdf->Cell(60, $lineHeight, $referral->receiving_physician ?? '', 'B', 0, 'L');
-        $pdf->Cell(20, $lineHeight, 'Contact:', 0, 0, 'L');
-        $pdf->Cell(50, $lineHeight, $referral->receiving_physician_contact ?? '', 'B', 1, 'L');
+        $pdf->Cell(130, $lineHeight, $referral->receiving_physician ?? '', 'B', 1, 'L');
         
         $pdf->Ln(3);
         
@@ -650,13 +646,7 @@ class PDFService
             $pdf->MultiCell(180, $lineHeight, $referral->notes, 'B', 'L');
         }
         
-        // Signatures
-        $pdf->Ln(10);
-        $pdf->Cell(90, $lineHeight, 'Referring Physician:', 0, 0, 'L');
-        $pdf->Cell(90, $lineHeight, 'Receiving Physician:', 0, 1, 'L');
-        
-        $pdf->Cell(90, 15, '', 'B', 0, 'L');
-        $pdf->Cell(90, 15, '', 'B', 1, 'L');
+        // (Removed signature lines per request)
     }
     
     private static function addReferralFooter($pdf)
