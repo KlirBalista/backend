@@ -529,16 +529,51 @@ class PDFService
         $pdf->SetFont('helvetica', '', 10);
         
         $pdf->Cell(50, $lineHeight, 'Reason for Referral:', 0, 0, 'L');
-        $pdf->MultiCell(130, $lineHeight, $referral->reason_for_referral, 'B', 'L');
+        $pdf->MultiCell(130, $lineHeight, $referral->reason_for_referral ?? 'N/A', 'B', 'L');
+        
+        if (!empty($referral->clinical_summary)) {
+            $pdf->Cell(50, $lineHeight, 'Clinical Summary:', 0, 0, 'L');
+            $pdf->MultiCell(130, $lineHeight, $referral->clinical_summary, 'B', 'L');
+        }
         
         if (!empty($referral->current_diagnosis)) {
             $pdf->Cell(50, $lineHeight, 'Current Diagnosis:', 0, 0, 'L');
             $pdf->MultiCell(130, $lineHeight, $referral->current_diagnosis, 'B', 'L');
         }
         
+        if (!empty($referral->relevant_history)) {
+            $pdf->Cell(50, $lineHeight, 'Relevant History:', 0, 0, 'L');
+            $pdf->MultiCell(130, $lineHeight, $referral->relevant_history, 'B', 'L');
+        }
+        
+        if (!empty($referral->current_medications)) {
+            $pdf->Cell(50, $lineHeight, 'Current Medications:', 0, 0, 'L');
+            $pdf->MultiCell(130, $lineHeight, $referral->current_medications, 'B', 'L');
+        }
+        
+        if (!empty($referral->allergies)) {
+            $pdf->Cell(50, $lineHeight, 'Allergies:', 0, 0, 'L');
+            $pdf->MultiCell(130, $lineHeight, $referral->allergies, 'B', 'L');
+        }
+        
         if (!empty($referral->vital_signs)) {
             $pdf->Cell(50, $lineHeight, 'Vital Signs:', 0, 0, 'L');
             $pdf->MultiCell(130, $lineHeight, $referral->vital_signs, 'B', 'L');
+        }
+        
+        if (!empty($referral->laboratory_results)) {
+            $pdf->Cell(50, $lineHeight, 'Laboratory Results:', 0, 0, 'L');
+            $pdf->MultiCell(130, $lineHeight, $referral->laboratory_results, 'B', 'L');
+        }
+        
+        if (!empty($referral->imaging_results)) {
+            $pdf->Cell(50, $lineHeight, 'Imaging Results:', 0, 0, 'L');
+            $pdf->MultiCell(130, $lineHeight, $referral->imaging_results, 'B', 'L');
+        }
+        
+        if (!empty($referral->treatment_provided)) {
+            $pdf->Cell(50, $lineHeight, 'Treatment Provided:', 0, 0, 'L');
+            $pdf->MultiCell(130, $lineHeight, $referral->treatment_provided, 'B', 'L');
         }
         
         $pdf->Ln(3);
@@ -553,15 +588,72 @@ class PDFService
         $pdf->Cell(20, $lineHeight, 'Transportation:', 0, 0, 'L');
         $pdf->Cell(50, $lineHeight, ucfirst(str_replace('_', ' ', $referral->transportation_mode ?? 'ambulance')), 'B', 1, 'L');
         
+        if (!empty($referral->accompanies_patient)) {
+            $pdf->Cell(50, $lineHeight, 'Accompanies Patient:', 0, 0, 'L');
+            $pdf->Cell(130, $lineHeight, $referral->accompanies_patient, 'B', 1, 'L');
+        }
+        
+        if (!empty($referral->equipment_required)) {
+            $pdf->Cell(50, $lineHeight, 'Equipment Required:', 0, 0, 'L');
+            $pdf->MultiCell(130, $lineHeight, $referral->equipment_required, 'B', 'L');
+        }
+        
+        if (!empty($referral->isolation_precautions)) {
+            $pdf->Cell(50, $lineHeight, 'Isolation Precautions:', 0, 0, 'L');
+            $pdf->MultiCell(130, $lineHeight, $referral->isolation_precautions, 'B', 'L');
+        }
+        
+        if (!empty($referral->anticipated_care_level)) {
+            $pdf->Cell(50, $lineHeight, 'Anticipated Care Level:', 0, 0, 'L');
+            $pdf->Cell(130, $lineHeight, $referral->anticipated_care_level, 'B', 1, 'L');
+        }
+        
+        if (!empty($referral->expected_duration)) {
+            $pdf->Cell(50, $lineHeight, 'Expected Duration:', 0, 0, 'L');
+            $pdf->Cell(130, $lineHeight, $referral->expected_duration, 'B', 1, 'L');
+        }
+        
         if (!empty($referral->special_instructions)) {
             $pdf->Cell(50, $lineHeight, 'Special Instructions:', 0, 0, 'L');
             $pdf->MultiCell(130, $lineHeight, $referral->special_instructions, 'B', 'L');
         }
         
+        // Insurance Information
+        $pdf->Ln(3);
+        $pdf->SetFont('helvetica', 'B', 11);
+        $pdf->Cell(0, $lineHeight, 'Insurance Information', 1, 1, 'L');
+        $pdf->SetFont('helvetica', '', 10);
+        $pdf->MultiCell(180, $lineHeight, $referral->insurance_information ?? 'N/A', 'B', 'L');
+        
+        // Emergency Contact
+        if ($referral->family_contact_name || $referral->family_contact_phone || $referral->family_contact_relationship) {
+            $pdf->Ln(3);
+            $pdf->SetFont('helvetica', 'B', 11);
+            $pdf->Cell(0, $lineHeight, 'Emergency Contact', 1, 1, 'L');
+            $pdf->SetFont('helvetica', '', 10);
+            
+            $pdf->Cell(50, $lineHeight, 'Contact Name:', 0, 0, 'L');
+            $pdf->Cell(60, $lineHeight, ($referral->family_contact_name ?? 'N/A'), 'B', 0, 'L');
+            $pdf->Cell(20, $lineHeight, 'Phone:', 0, 0, 'L');
+            $pdf->Cell(50, $lineHeight, ($referral->family_contact_phone ?? 'N/A'), 'B', 1, 'L');
+            
+            $pdf->Cell(50, $lineHeight, 'Relationship:', 0, 0, 'L');
+            $pdf->Cell(130, $lineHeight, ($referral->family_contact_relationship ?? 'N/A'), 'B', 1, 'L');
+        }
+        
+        // Additional Notes
+        if (!empty($referral->notes)) {
+            $pdf->Ln(3);
+            $pdf->SetFont('helvetica', 'B', 11);
+            $pdf->Cell(0, $lineHeight, 'Additional Notes', 1, 1, 'L');
+            $pdf->SetFont('helvetica', '', 10);
+            $pdf->MultiCell(180, $lineHeight, $referral->notes, 'B', 'L');
+        }
+        
         // Signatures
         $pdf->Ln(10);
-        $pdf->Cell(90, $lineHeight, 'Physician:', 0, 0, 'L');
-        $pdf->Cell(90, $lineHeight, 'Physician:', 0, 1, 'L');
+        $pdf->Cell(90, $lineHeight, 'Referring Physician:', 0, 0, 'L');
+        $pdf->Cell(90, $lineHeight, 'Receiving Physician:', 0, 1, 'L');
         
         $pdf->Cell(90, 15, '', 'B', 0, 'L');
         $pdf->Cell(90, 15, '', 'B', 1, 'L');
