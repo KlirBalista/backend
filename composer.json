@@ -14,6 +14,8 @@
         "laravel/framework": "^12.0",
         "laravel/sanctum": "^4.0",
         "laravel/tinker": "^2.10.1",
+        "resend/resend-php": "^1.0",
+        "symfony/resend-mailer": "^7.3",
         "tecnickcom/tcpdf": "^6.10"
     },
     "require-dev": {
