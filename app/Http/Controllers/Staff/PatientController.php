@@ -80,6 +80,12 @@ class PatientController extends Controller
             'gravida' => 'nullable|integer|min:0',
             'para' => 'nullable|integer|min:0',
             'philhealth_number' => 'nullable|string|max:50',
+            'philhealth_category' => 'nullable|in:None,Direct,Indirect',
+            'facility_name' => 'nullable|string|max:255',
+            'principal_philhealth_number' => 'nullable|string|max:50',
+            'principal_name' => 'nullable|string|max:255',
+            'relationship_to_principal' => 'nullable|string|max:100',
+            'principal_date_of_birth' => 'nullable|date',
         ]);
 
         if ($validator->fails()) {
