@@ -12,18 +12,33 @@ return new class extends Migration
      */
     public function up(): void
     {
-        // First, update any existing null values to 'None'
+        // Ensure philhealth_category null values are normalized (safe no-op for most DBs)
         DB::statement("UPDATE patients SET philhealth_category = NULL WHERE philhealth_category IS NULL OR philhealth_category = ''");
-        
-        // Change the column type to varchar to allow 'None' value
-        Schema::table('patients', function (Blueprint $table) {
-            $table->string('philhealth_category')->nullable()->change();
-            $table->string('facility_name')->nullable()->after('birth_care_id');
-            $table->string('principal_philhealth_number')->nullable()->after('philhealth_category');
-            $table->string('principal_name')->nullable()->after('principal_philhealth_number');
-            $table->string('relationship_to_principal')->nullable()->after('principal_name');
-            $table->date('principal_date_of_birth')->nullable()->after('relationship_to_principal');
-        });
+
+        // Add new columns only if they don't already exist. Avoid column order directives for cross-DB compatibility.
+        if (!Schema::hasColumn('patients', 'facility_name') ||
+            !Schema::hasColumn('patients', 'principal_philhealth_number') ||
+            !Schema::hasColumn('patients', 'principal_name') ||
+            !Schema::hasColumn('patients', 'relationship_to_principal') ||
+            !Schema::hasColumn('patients', 'principal_date_of_birth')) {
+            Schema::table('patients', function (Blueprint $table) {
+                if (!Schema::hasColumn('patients', 'facility_name')) {
+                    $table->string('facility_name')->nullable();
+                }
+                if (!Schema::hasColumn('patients', 'principal_philhealth_number')) {
+                    $table->string('principal_philhealth_number')->nullable();
+                }
+                if (!Schema::hasColumn('patients', 'principal_name')) {
+                    $table->string('principal_name')->nullable();
+                }
+                if (!Schema::hasColumn('patients', 'relationship_to_principal')) {
+                    $table->string('relationship_to_principal')->nullable();
+                }
+                if (!Schema::hasColumn('patients', 'principal_date_of_birth')) {
+                    $table->date('principal_date_of_birth')->nullable();
+                }
+            });
+        }
     }
 
     /**
@@ -31,9 +46,23 @@ return new class extends Migration
      */
     public function down(): void
     {
+        // Drop columns only if they exist; do not alter philhealth_category type
         Schema::table('patients', function (Blueprint $table) {
-            $table->dropColumn(['facility_name', 'principal_philhealth_number', 'principal_name', 'relationship_to_principal', 'principal_date_of_birth']);
-            $table->enum('philhealth_category', ['Direct', 'Indirect'])->nullable()->change();
+            if (Schema::hasColumn('patients', 'facility_name')) {
+                $table->dropColumn('facility_name');
+            }
+            if (Schema::hasColumn('patients', 'principal_philhealth_number')) {
+                $table->dropColumn('principal_philhealth_number');
+            }
+            if (Schema::hasColumn('patients', 'principal_name')) {
+                $table->dropColumn('principal_name');
+            }
+            if (Schema::hasColumn('patients', 'relationship_to_principal')) {
+                $table->dropColumn('relationship_to_principal');
+            }
+            if (Schema::hasColumn('patients', 'principal_date_of_birth')) {
+                $table->dropColumn('principal_date_of_birth');
+            }
         });
     }
 };
