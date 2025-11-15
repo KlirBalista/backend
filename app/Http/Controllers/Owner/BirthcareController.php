@@ -483,16 +483,13 @@ class BirthcareController extends Controller
                 }
             }
             
-            // Reset status to pending for re-review
-            $birthcare->update([
-                'status' => 'pending',
-                'rejection_reason' => null,
-            ]);
-            
+            // NOTE: Do NOT auto-change status here.
+            // Updating documents should not automatically resubmit the application.
+            // Resubmission is handled explicitly via the resubmit() endpoint.
             DB::commit();
             
             return response()->json([
-                'message' => 'Documents updated successfully. Your facility is now pending review.',
+                'message' => 'Documents updated successfully. You can now resubmit your application for review.',
                 'birthcare' => $birthcare->load('documents'),
             ]);
         } catch (\Exception $e) {
