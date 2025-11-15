@@ -545,22 +545,28 @@ class PaymentsController extends Controller
                 ->count();
             \Log::info('Overdue count', ['count' => $overdueCount]);
 
-            // Monthly revenue by actual payments received - SQLite compatible
+            // Monthly revenue by actual payments received - database driver aware
             $dbDriver = config('database.default');
+
+            $paymentsQuery = BillPayment::whereHas('bill', function($query) use ($birthcare_id) {
+                    $query->forBirthcare($birthcare_id);
+                })
+                ->whereYear('payment_date', date('Y'));
+
             if ($dbDriver === 'sqlite') {
-                $monthlyRevenue = BillPayment::whereHas('bill', function($query) use ($birthcare_id) {
-                        $query->forBirthcare($birthcare_id);
-                    })
-                    ->whereYear('payment_date', date('Y'))
+                $monthlyRevenue = $paymentsQuery
                     ->selectRaw('strftime("%m", payment_date) as month, SUM(amount) as revenue')
                     ->groupBy('month')
                     ->pluck('revenue', 'month');
+            } elseif ($dbDriver === 'pgsql') {
+                // PostgreSQL
+                $monthlyRevenue = $paymentsQuery
+                    ->selectRaw('EXTRACT(MONTH FROM payment_date) as month, SUM(amount) as revenue')
+                    ->groupBy('month')
+                    ->pluck('revenue', 'month');
             } else {
-                // MySQL/PostgreSQL compatible
-                $monthlyRevenue = BillPayment::whereHas('bill', function($query) use ($birthcare_id) {
-                        $query->forBirthcare($birthcare_id);
-                    })
-                    ->whereYear('payment_date', date('Y'))
+                // MySQL / MariaDB
+                $monthlyRevenue = $paymentsQuery
                     ->selectRaw('MONTH(payment_date) as month, SUM(amount) as revenue')
                     ->groupBy('month')
                     ->pluck('revenue', 'month');
@@ -1626,24 +1632,46 @@ class PaymentsController extends Controller
     public function getPaymentAnalytics($birthcare_id)
     {
         try {
-            $bills = PatientBill::forBirthcare($birthcare_id);
-            
+            // Base query for all bills for this birthcare
+            $baseQuery = PatientBill::forBirthcare($birthcare_id);
+
             // Payment method breakdown
-            $paymentMethods = BillPayment::whereIn('patient_bill_id', $bills->pluck('id'))
+            $paymentMethods = BillPayment::whereIn('patient_bill_id', (clone $baseQuery)->pluck('id'))
                 ->selectRaw('payment_method, COUNT(*) as count, SUM(amount) as total_amount')
                 ->groupBy('payment_method')
                 ->get();
 
-            // Monthly revenue trend (last 12 months)
-            $monthlyRevenue = $bills->where('status', 'paid')
-                ->where('bill_date', '>=', now()->subYear())
-                ->selectRaw('DATE_FORMAT(bill_date, "%Y-%m") as month, SUM(total_amount) as revenue')
-                ->groupBy('month')
-                ->orderBy('month')
-                ->get();
+            // Monthly revenue trend (last 12 months) - DB driver aware
+            $dbDriver = config('database.default');
 
-            // Average payment time
-            $avgPaymentTime = $bills->where('status', 'paid')
+            $monthlyRevenueQuery = (clone $baseQuery)
+                ->where('status', 'paid')
+                ->where('bill_date', '>=', now()->subYear());
+
+            if ($dbDriver === 'sqlite') {
+                $monthlyRevenue = $monthlyRevenueQuery
+                    ->selectRaw("strftime('%Y-%m', bill_date) as month, SUM(total_amount) as revenue")
+                    ->groupBy('month')
+                    ->orderBy('month')
+                    ->get();
+            } elseif ($dbDriver === 'pgsql') {
+                $monthlyRevenue = $monthlyRevenueQuery
+                    ->selectRaw("to_char(bill_date, 'YYYY-MM') as month, SUM(total_amount) as revenue")
+                    ->groupBy('month')
+                    ->orderBy('month')
+                    ->get();
+            } else {
+                // MySQL / MariaDB
+                $monthlyRevenue = $monthlyRevenueQuery
+                    ->selectRaw("DATE_FORMAT(bill_date, '%Y-%m') as month, SUM(total_amount) as revenue")
+                    ->groupBy('month')
+                    ->orderBy('month')
+                    ->get();
+            }
+
+            // Average payment time (days from bill_date to first payment)
+            $avgPaymentTime = (clone $baseQuery)
+                ->where('status', 'paid')
                 ->with('payments')
                 ->get()
                 ->map(function ($bill) {
@@ -1656,8 +1684,9 @@ class PaymentsController extends Controller
                 ->filter()
                 ->avg();
 
-            // Outstanding amounts by age
-            $outstandingByAge = $bills->where('balance_amount', '>', 0)
+            // Outstanding amounts by age buckets
+            $outstandingByAge = (clone $baseQuery)
+                ->where('balance_amount', '>', 0)
                 ->get()
                 ->groupBy(function ($bill) {
                     $daysOverdue = now()->diffInDays($bill->due_date);
@@ -1670,32 +1699,37 @@ class PaymentsController extends Controller
                 ->map(function ($group) {
                     return [
                         'count' => $group->count(),
-                        'total_amount' => $group->sum('balance_amount')
+                        'total_amount' => $group->sum('balance_amount'),
                     ];
                 });
+
+            // Summary using the unfiltered baseQuery
+            $summaryQuery = clone $baseQuery;
+
+            $summary = [
+                'total_bills' => (clone $summaryQuery)->count(),
+                'paid_bills' => (clone $summaryQuery)->where('status', 'paid')->count(),
+                'overdue_bills' => (clone $summaryQuery)->where('due_date', '<', now())->where('balance_amount', '>', 0)->count(),
+                'total_revenue' => (clone $summaryQuery)->sum('total_amount'),
+                'collected_amount' => (clone $summaryQuery)->sum('paid_amount'),
+                'outstanding_amount' => (clone $summaryQuery)->sum('balance_amount'),
+            ];
 
             return response()->json([
                 'success' => true,
                 'data' => [
                     'payment_methods' => $paymentMethods,
                     'monthly_revenue' => $monthlyRevenue,
-                    'average_payment_time_days' => round($avgPaymentTime, 1),
+                    'average_payment_time_days' => $avgPaymentTime ? round($avgPaymentTime, 1) : 0,
                     'outstanding_by_age' => $outstandingByAge,
-                    'summary' => [
-                        'total_bills' => $bills->count(),
-                        'paid_bills' => $bills->where('status', 'paid')->count(),
-                        'overdue_bills' => $bills->where('due_date', '<', now())->where('balance_amount', '>', 0)->count(),
-                        'total_revenue' => $bills->sum('total_amount'),
-                        'collected_amount' => $bills->sum('paid_amount'),
-                        'outstanding_amount' => $bills->sum('balance_amount')
-                    ]
-                ]
+                    'summary' => $summary,
+                ],
             ]);
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to generate payment analytics',
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ], 500);
         }
     }
