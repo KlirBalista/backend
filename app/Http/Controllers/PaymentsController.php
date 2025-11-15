@@ -545,49 +545,24 @@ class PaymentsController extends Controller
                 ->count();
             \Log::info('Overdue count', ['count' => $overdueCount]);
 
-            // Monthly revenue by actual payments received - database driver aware
-            $dbDriver = config('database.default');
-
-            $paymentsQuery = BillPayment::whereHas('bill', function($query) use ($birthcare_id) {
+            // Monthly revenue by actual payments received (MySQL)
+            $monthlyRevenue = BillPayment::whereHas('bill', function($query) use ($birthcare_id) {
                     $query->forBirthcare($birthcare_id);
                 })
-                ->whereYear('payment_date', date('Y'));
+                ->whereYear('payment_date', date('Y'))
+                ->selectRaw('MONTH(payment_date) as month, SUM(amount) as revenue')
+                ->groupBy('month')
+                ->pluck('revenue', 'month');
 
-            if ($dbDriver === 'sqlite') {
-                $monthlyRevenue = $paymentsQuery
-                    ->selectRaw('strftime("%m", payment_date) as month, SUM(amount) as revenue')
-                    ->groupBy('month')
-                    ->pluck('revenue', 'month');
-            } elseif ($dbDriver === 'pgsql') {
-                // PostgreSQL
-                $monthlyRevenue = $paymentsQuery
-                    ->selectRaw('EXTRACT(MONTH FROM payment_date) as month, SUM(amount) as revenue')
-                    ->groupBy('month')
-                    ->pluck('revenue', 'month');
-            } else {
-                // MySQL / MariaDB
-                $monthlyRevenue = $paymentsQuery
-                    ->selectRaw('MONTH(payment_date) as month, SUM(amount) as revenue')
-                    ->groupBy('month')
-                    ->pluck('revenue', 'month');
-            }
-
-            // Fallback: if no BillPayment records yet, approximate monthly revenue from paid amounts on bills
+            // Fallback: if no payments yet, use billed totals per month
             if ($monthlyRevenue->isEmpty()) {
-                $billsForYear = PatientBill::forBirthcare($birthcare_id)
+                $monthlyRevenue = PatientBill::forBirthcare($birthcare_id)
                     ->whereYear('bill_date', date('Y'))
-                    ->get();
+                    ->selectRaw('MONTH(bill_date) as month, SUM(total_amount) as revenue')
+                    ->groupBy('month')
+                    ->pluck('revenue', 'month');
 
-                $monthlyRevenue = $billsForYear
-                    ->groupBy(function ($bill) {
-                        return $bill->bill_date->format('m');
-                    })
-                    ->map(function ($group) {
-                        // Use paid_amount as "revenue" so we only count collected money
-                        return $group->sum('paid_amount');
-                    });
-
-                \Log::info('Monthly revenue fallback from PatientBill.paid_amount used', [
+                \Log::info('Monthly revenue fallback from PatientBill.total_amount used', [
                     'entries' => $monthlyRevenue->count(),
                 ]);
             }
@@ -1822,8 +1797,13 @@ class PaymentsController extends Controller
                 'sum_total_amount' => $allBills->sum('total_amount')
             ]);
 
+            $paymentsCount = BillPayment::whereHas('bill', function ($query) use ($birthcare_id) {
+                    $query->forBirthcare($birthcare_id);
+                })->count();
+
             return [
                 'total_bills' => (clone $baseQuery)->count(),
+                'total_payments' => $paymentsCount,
                 'total_revenue' => (clone $baseQuery)->sum('total_amount') ?? 0,
                 'total_paid' => (clone $baseQuery)->sum('paid_amount') ?? 0,
                 'total_outstanding' => (clone $baseQuery)->where('balance_amount', '>', 0)->sum('balance_amount') ?? 0,
