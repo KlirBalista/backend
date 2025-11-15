@@ -224,6 +224,9 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/birthcare/{birthcare_id}/payments/soa/pdf', [\App\Http\Controllers\PaymentsController::class, 'generateSOAPDF']);
         Route::get('/birthcare/{birthcare_id}/payments', [\App\Http\Controllers\PaymentsController::class, 'index']);
         Route::post('/birthcare/{birthcare_id}/payments', [\App\Http\Controllers\PaymentsController::class, 'store']);
+        // IMPORTANT: define fixed paths before the {bill} catch-all to avoid 404s from model binding
+        Route::get('/birthcare/{birthcare_id}/payments/reports', [\App\Http\Controllers\PaymentsController::class, 'getReports']);
+        Route::get('/birthcare/{birthcare_id}/payments/analytics', [\App\Http\Controllers\PaymentsController::class, 'getPaymentAnalytics']);
         Route::get('/birthcare/{birthcare_id}/payments/{bill}', [\App\Http\Controllers\PaymentsController::class, 'show']);
         Route::put('/birthcare/{birthcare_id}/payments/{bill}', [\App\Http\Controllers\PaymentsController::class, 'update']);
         Route::delete('/birthcare/{birthcare_id}/payments/{bill}', [\App\Http\Controllers\PaymentsController::class, 'destroy']);
@@ -236,9 +239,6 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/birthcare/{birthcare_id}/payments/{bill}/partial-payment', [\App\Http\Controllers\PaymentsController::class, 'processPartialPayment']);
         Route::get('/birthcare/{birthcare_id}/payments/reminders', [\App\Http\Controllers\PaymentsController::class, 'generatePaymentReminders']);
         Route::post('/birthcare/{birthcare_id}/payments/bulk-payments', [\App\Http\Controllers\PaymentsController::class, 'processBulkPayments']);
-        Route::get('/birthcare/{birthcare_id}/payments/reports', [\App\Http\Controllers\PaymentsController::class, 'getReports']);
-        // Note: analytics method is named getPaymentAnalytics in the controller
-        Route::get('/birthcare/{birthcare_id}/payments/analytics', [\App\Http\Controllers\PaymentsController::class, 'getPaymentAnalytics']);
         Route::post('/birthcare/{birthcare_id}/payments/create-test-data', [\App\Http\Controllers\PaymentsController::class, 'createTestData']);
 
         // Birth care facility details route

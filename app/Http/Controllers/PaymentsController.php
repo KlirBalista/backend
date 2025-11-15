@@ -571,6 +571,27 @@ class PaymentsController extends Controller
                     ->groupBy('month')
                     ->pluck('revenue', 'month');
             }
+
+            // Fallback: if no BillPayment records yet, approximate monthly revenue from paid amounts on bills
+            if ($monthlyRevenue->isEmpty()) {
+                $billsForYear = PatientBill::forBirthcare($birthcare_id)
+                    ->whereYear('bill_date', date('Y'))
+                    ->get();
+
+                $monthlyRevenue = $billsForYear
+                    ->groupBy(function ($bill) {
+                        return $bill->bill_date->format('m');
+                    })
+                    ->map(function ($group) {
+                        // Use paid_amount as "revenue" so we only count collected money
+                        return $group->sum('paid_amount');
+                    });
+
+                \Log::info('Monthly revenue fallback from PatientBill.paid_amount used', [
+                    'entries' => $monthlyRevenue->count(),
+                ]);
+            }
+
             \Log::info('Monthly revenue data retrieved', ['entries' => $monthlyRevenue->count()]);
 
             return response()->json([
