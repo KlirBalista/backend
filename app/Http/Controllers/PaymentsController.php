@@ -531,8 +531,8 @@ class PaymentsController extends Controller
             $summary = $this->getPaymentsSummary($birthcare_id);
             \Log::info('Summary data retrieved successfully');
             
-            // Get recent bills
-            $recentBills = PatientBill::with(['patient'])
+            // Get recent bills with their payments
+            $recentBills = PatientBill::with(['patient', 'payments'])
                 ->forBirthcare($birthcare_id)
                 ->orderBy('created_at', 'desc')
                 ->take(5)
